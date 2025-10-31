@@ -1,0 +1,130 @@
+library ieee;
+use ieee.std_logic_1164.all;
+use ieee.numeric_std.all;
+
+ENTITY request_resolver IS 
+    GENERIC(N : integer := 4); -- N=4 means 2^4 = 16 possible floors, but we use 0-9
+    PORT (
+        clk         : in std_logic;
+        rst         : in std_logic;
+        en          : in std_logic; -- push button to register request
+        bn          : in std_logic_vector(N-1 DOWNTO 0); -- floor buttons (switches)
+        curr_floor  : in integer range 0 to 9; -- current floor from controller
+        curr_state  : in std_logic_vector(1 downto 0); -- 00=idle, 01=up, 10=down, 11=door
+        
+        -- Outputs to elevator controller
+        up_input    : out std_logic; -- there are requests above
+        down_input  : out std_logic; -- there are requests below
+        reached     : out std_logic  -- current floor has a request
+    );
+END request_resolver;
+
+ARCHITECTURE rtl OF request_resolver IS 
+    -- Request queue: 10 bits for floors 0-9
+    signal request_queue : std_logic_vector(9 downto 0) := (others => '0');
+    signal last_direction : std_logic := '0'; -- 0=down, 1=up (for when idle)
+    
+BEGIN
+
+    -- Process 1: Capture floor requests
+    PROCESS(clk, rst)
+        variable floor_num : integer;
+    BEGIN
+        if rst = '1' then
+            request_queue <= (others => '0');
+            
+        elsif rising_edge(clk) then
+            -- Capture new request when enable button pressed
+            if en = '1' then
+                floor_num := to_integer(unsigned(bn));
+                if floor_num >= 0 and floor_num <= 9 then
+                    request_queue(floor_num) <= '1';
+                end if;
+            end if;
+            
+            -- Clear request when door opens at that floor
+            -- curr_state = "11" means opendoor_state
+            if curr_state = "11" then
+                request_queue(curr_floor) <= '0';
+            end if;
+        end if;
+    END PROCESS;
+    
+    -- Process 2: Track last direction for intelligent idle decisions
+    PROCESS(clk, rst)
+    BEGIN
+        if rst = '1' then
+            last_direction <= '0'; -- default to down
+        elsif rising_edge(clk) then
+            -- curr_state: 01=up, 10=down
+            if curr_state = "01" then
+                last_direction <= '1'; -- was going up
+            elsif curr_state = "10" then
+                last_direction <= '0'; -- was going down
+            end if;
+        end if;
+    END PROCESS;
+
+    -- Process 3: Resolve requests based on SCAN algorithm
+    PROCESS(request_queue, curr_floor, curr_state, last_direction)
+        variable has_request_above : std_logic;
+        variable has_request_below : std_logic;
+        variable has_request_here : std_logic;
+    BEGIN
+        -- Check if there are requests in each direction
+        has_request_above := '0';
+        has_request_below := '0';
+        has_request_here := request_queue(curr_floor);
+        
+        -- Check for requests above current floor
+        for i in (curr_floor + 1) to 9 loop
+            if request_queue(i) = '1' then
+                has_request_above := '1';
+            end if;
+        end loop;
+        
+        -- Check for requests below current floor
+        for i in 0 to (curr_floor - 1) loop
+            if request_queue(i) = '1' then
+                has_request_below := '1';
+            end if;
+        end loop;
+        
+        -- Output logic based on current state
+        case curr_state is
+            when "01" => -- up_state
+                -- Continue going up if there are requests above
+                up_input <= has_request_above;
+                -- Only go down if no requests above AND requests below
+                down_input <= (not has_request_above) and has_request_below;
+                reached <= has_request_here;
+                
+            when "10" => -- down_state
+                -- Continue going down if there are requests below
+                down_input <= has_request_below;
+                -- Only go up if no requests below AND requests above
+                up_input <= (not has_request_below) and has_request_above;
+                reached <= has_request_here;
+                
+            when "00" => -- idle_state
+                -- If idle, choose direction based on last direction for efficiency
+                if last_direction = '1' then -- was going up
+                    -- Try up first, then down
+                    up_input <= has_request_above;
+                    down_input <= (not has_request_above) and has_request_below;
+                else -- was going down
+                    -- Try down first, then up
+                    down_input <= has_request_below;
+                    up_input <= (not has_request_below) and has_request_above;
+                end if;
+                reached <= has_request_here;
+                
+            when others => -- opendoor_state "11"
+                up_input <= '0';
+                down_input <= '0';
+                reached <= '0';
+        end case;
+        
+    END PROCESS;
+
+END rtl;
