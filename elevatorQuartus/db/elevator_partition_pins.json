@@ -1,0 +1,77 @@
+{
+	"partitions" : [
+		{
+			"name" : "Top",
+			"pins" : [
+				{
+					"name" : "mv_up",
+					"strict" : false
+				},
+				{
+					"name" : "mv_dn",
+					"strict" : false
+				},
+				{
+					"name" : "door_open",
+					"strict" : false
+				},
+				{
+					"name" : "ssd[0]",
+					"strict" : false
+				},
+				{
+					"name" : "ssd[1]",
+					"strict" : false
+				},
+				{
+					"name" : "ssd[2]",
+					"strict" : false
+				},
+				{
+					"name" : "ssd[3]",
+					"strict" : false
+				},
+				{
+					"name" : "ssd[4]",
+					"strict" : false
+				},
+				{
+					"name" : "ssd[5]",
+					"strict" : false
+				},
+				{
+					"name" : "ssd[6]",
+					"strict" : false
+				},
+				{
+					"name" : "clk",
+					"strict" : false
+				},
+				{
+					"name" : "rst",
+					"strict" : false
+				},
+				{
+					"name" : "bn[1]",
+					"strict" : false
+				},
+				{
+					"name" : "bn[2]",
+					"strict" : false
+				},
+				{
+					"name" : "bn[0]",
+					"strict" : false
+				},
+				{
+					"name" : "bn[3]",
+					"strict" : false
+				},
+				{
+					"name" : "en",
+					"strict" : false
+				}
+			]
+		}
+	]
+}

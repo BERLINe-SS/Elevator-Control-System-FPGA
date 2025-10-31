@@ -1,0 +1,7 @@
+
+State Machine - |elevator_system|elevator_ctrl:ctrl|state_reg
+Name state_reg.opendoor_state state_reg.down_state state_reg.up_state state_reg.idle_state 
+state_reg.idle_state 0 0 0 0 
+state_reg.up_state 0 0 1 1 
+state_reg.down_state 0 1 0 1 
+state_reg.opendoor_state 1 0 0 1 
